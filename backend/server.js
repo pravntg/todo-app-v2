@@ -8,7 +8,7 @@ require('dotenv').config();
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const auth = require('./middleware/auth');
-const Todo = require('./models/Todo');
+const Task = require('./models/Todo');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,7 +32,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.get('/api/todos', auth, async (req, res) => {
     try {
         console.log(`Fetching todos for user: ${req.user.id}`);
-        const todos = await Todo.find({ user: req.user.id }).sort({ createdAt: -1 });
+        const todos = await Task.find({ user: req.user.id }).sort({ createdAt: -1 });
         res.json(todos);
     } catch (err) {
         console.error('Error fetching todos:', err);
@@ -44,18 +44,18 @@ app.get('/api/todos', auth, async (req, res) => {
 app.post('/api/todos', auth, async (req, res) => {
     try {
         const { title, description } = req.body;
-        console.log(`Creating todo for user: ${req.user.id}`, { title });
+        console.log(`Creating task for user: ${req.user.id}`, { title });
 
-        const newTodo = new Todo({
+        const newTask = new Task({
             user: req.user.id,
             title,
             description
         });
         
-        const savedTodo = await newTodo.save();
-        res.status(201).json(savedTodo);
+        const savedTask = await newTask.save();
+        res.status(201).json(savedTask);
     } catch (err) {
-        console.error('Error creating todo:', err);
+        console.error('Error creating task:', err);
         res.status(400).json({ message: 'Bad request: ' + err.message });
     }
 });
@@ -64,7 +64,7 @@ app.post('/api/todos', auth, async (req, res) => {
 app.put('/api/todos/:id', auth, async (req, res) => {
     try {
         console.log(`Update attempt for todo: ${req.params.id} by user: ${req.user.id}`);
-        const todo = await Todo.findOne({ _id: req.params.id, user: req.user.id });
+        const todo = await Task.findOne({ _id: req.params.id, user: req.user.id });
         
         if (!todo) {
             console.log("Todo not found for update");
@@ -89,7 +89,7 @@ app.put('/api/todos/:id', auth, async (req, res) => {
 app.delete('/api/todos/:id', auth, async (req, res) => {
     try {
         console.log(`Delete attempt for todo: ${req.params.id} by user: ${req.user.id}`);
-        const deletedTodo = await Todo.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+        const deletedTodo = await Task.findOneAndDelete({ _id: req.params.id, user: req.user.id });
         
         if (!deletedTodo) {
             console.log("Todo not found for deletion");

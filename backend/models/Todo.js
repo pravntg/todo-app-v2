@@ -9,4 +9,4 @@ const TodoSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Todo', TodoSchema);
+module.exports = mongoose.model('Task', TodoSchema, 'tasks');
