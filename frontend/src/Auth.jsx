@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 
-const AUTH_API_URL = 'http://localhost:5000/api/auth';
+const AUTH_API_URL = 'http://34.26.100.105:5000/api/auth';
 
 function Auth({ setToken }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,11 +17,14 @@ function Auth({ setToken }) {
     const endpoint = isLogin ? '/login' : '/register';
     
     try {
+      console.log(`Sending ${isLogin ? 'Login' : 'Register'} request to: ${AUTH_API_URL}${endpoint}`);
       const res = await axios.post(`${AUTH_API_URL}${endpoint}`, { email, password });
       localStorage.setItem('token', res.data.token);
       setToken(res.data.token);
     } catch (err) {
-      setError(err.response?.data?.message || 'Authentication failed. Please try again.');
+      console.error('Auth Error Object:', err);
+      const msg = err.response?.data?.message || err.message || 'Authentication failed. Please try again.';
+      setError(msg);
     }
   };
 

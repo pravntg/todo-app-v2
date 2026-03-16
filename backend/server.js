@@ -1,9 +1,14 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
+const dns = require('dns');
 require('dotenv').config();
 
-const store = require('./store');
+// Force Node to use Google DNS to bypass ISP blocking of MongoDB SRV records
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 const auth = require('./middleware/auth');
+const Todo = require('./models/Todo');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -12,8 +17,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// --- NO MONGODB CONNECTION NEEDED ANYMORE ---
-console.log('Backend starting using local Local Memory Storage (No Database needed!)...');
+// Connect to MongoDB
+console.log("Attempting to connect to MongoDB...");
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('✓ MongoDB Connected Successfully!'))
+    .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Authentication Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -21,71 +29,62 @@ app.use('/api/auth', require('./routes/auth'));
 // --- PROTECTED TODO ROUTES ---
 
 // Get all todos FOR THE LOGGED IN USER
-app.get('/api/todos', auth, (req, res) => {
+app.get('/api/todos', auth, async (req, res) => {
     try {
-        // Filter todos from our local array
-        const userTodos = store.todos
-            .filter(t => t.user === req.user.id)
-            .sort((a, b) => b.createdAt - a.createdAt);
-        res.json(userTodos);
+        const todos = await Todo.find({ user: req.user.id }).sort({ createdAt: -1 });
+        res.json(todos);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
 // Create a new todo FOR THE LOGGED IN USER
-app.post('/api/todos', auth, (req, res) => {
+app.post('/api/todos', auth, async (req, res) => {
     try {
-        const newTodo = {
-            _id: Date.now().toString(), // generate fake mongo-like ID
+        const newTodo = new Todo({
             user: req.user.id,
             title: req.body.title || 'Untitled',
-            description: req.body.description || '',
-            completed: false,
-            isDeleted: false,
-            createdAt: new Date().getTime()
-        };
+            description: req.body.description || ''
+        });
         
-        store.todos.push(newTodo);
-        res.status(201).json(newTodo);
+        const savedTodo = await newTodo.save();
+        res.status(201).json(savedTodo);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
 
 // Update a todo 
-app.put('/api/todos/:id', auth, (req, res) => {
+app.put('/api/todos/:id', auth, async (req, res) => {
     try {
-        const todoIndex = store.todos.findIndex(t => t._id === req.params.id && t.user === req.user.id);
+        const todo = await Todo.findOne({ _id: req.params.id, user: req.user.id });
         
-        if (todoIndex === -1) {
+        if (!todo) {
             return res.status(404).json({ message: 'Todo not found or not authorized' });
         }
         
-        // Update it
-        if (req.body.completed !== undefined) store.todos[todoIndex].completed = req.body.completed;
-        if (req.body.title !== undefined) store.todos[todoIndex].title = req.body.title;
-        if (req.body.description !== undefined) store.todos[todoIndex].description = req.body.description;
-        if (req.body.isDeleted !== undefined) store.todos[todoIndex].isDeleted = req.body.isDeleted;
+        if (req.body.completed !== undefined) todo.completed = req.body.completed;
+        if (req.body.title !== undefined) todo.title = req.body.title;
+        if (req.body.description !== undefined) todo.description = req.body.description;
+        if (req.body.isDeleted !== undefined) todo.isDeleted = req.body.isDeleted;
         
-        res.json(store.todos[todoIndex]);
+        const updatedTodo = await todo.save();
+        res.json(updatedTodo);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
 
-// Delete a todo
-app.delete('/api/todos/:id', auth, (req, res) => {
+// Permanently Delete a todo
+app.delete('/api/todos/:id', auth, async (req, res) => {
     try {
-        const todoIndex = store.todos.findIndex(t => t._id === req.params.id && t.user === req.user.id);
+        const deletedTodo = await Todo.findOneAndDelete({ _id: req.params.id, user: req.user.id });
         
-        if (todoIndex === -1) {
+        if (!deletedTodo) {
             return res.status(404).json({ message: 'Todo not found or not authorized' });
         }
         
-        // Remove from array
-        store.todos.splice(todoIndex, 1);
-        res.json({ message: 'Todo removed' });
+        res.json({ message: 'Todo permanently removed' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
