@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { FaEnvelope, FaLock } from 'react-icons/fa';
 
 const AUTH_API_URL = 'http://localhost:5000/api/auth';
 
@@ -17,11 +18,7 @@ function Auth({ setToken }) {
     
     try {
       const res = await axios.post(`${AUTH_API_URL}${endpoint}`, { email, password });
-      
-      // Save the generated token to local storage
       localStorage.setItem('token', res.data.token);
-      
-      // Update global state
       setToken(res.data.token);
     } catch (err) {
       setError(err.response?.data?.message || 'Authentication failed. Please try again.');
@@ -29,39 +26,60 @@ function Auth({ setToken }) {
   };
 
   return (
-    <div className="app-container auth-container">
-      <h2>{isLogin ? 'Welcome Back.' : 'Create an Account.'}</h2>
-      <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
-        {isLogin ? 'Sign in to access your secure tasks.' : 'Sign up to encrypt and save your tasks.'}
-      </p>
+    <div className="auth-page">
+      <div className="auth-card">
+        <h2>{isLogin ? 'Welcome Back!' : 'Create Account!'}</h2>
+        <p className="subtitle">
+          {isLogin ? "Let's continue managing your tasks" : 'Join us to manage your tasks'}
+        </p>
 
-      {error && <div className="error-message" style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
+        {error && <div style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <input 
-          type="email" 
-          className="todo-input" 
-          placeholder="Email Address" 
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input 
-          type="password" 
-          className="todo-input" 
-          placeholder="Password" 
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit" className="add-btn" style={{ padding: '12px', marginTop: '10px' }}>
-          {isLogin ? 'Sign In' : 'Sign Up'}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Email</label>
+            <div className="input-icon-wrapper">
+              <FaEnvelope />
+              <input 
+                type="email" 
+                className="auth-input email" 
+                placeholder="name@example.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+            <label>Password</label>
+            <div className="input-icon-wrapper">
+              <FaLock />
+              <input 
+                type="password" 
+                className="auth-input password" 
+                placeholder="Enter your password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
 
-      <p style={{ marginTop: '2rem', cursor: 'pointer', color: '#38bdf8' }} onClick={() => setIsLogin(!isLogin)}>
-        {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-      </p>
+          {isLogin && <div className="forgot-pw">Forgot Password?</div>}
+
+          <button type="submit" className="auth-btn">
+            {isLogin ? 'Sign In' : 'Sign Up'}
+          </button>
+        </form>
+
+        <p className="auth-switch">
+          {isLogin ? "Don't have an account? " : 'Already have an account? '}
+          <span onClick={() => setIsLogin(!isLogin)}>
+            {isLogin ? 'Sign Up' : 'Sign In'}
+          </span>
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaTrash, FaCheck, FaSignOutAlt } from 'react-icons/fa';
+import { FaTrash, FaCheck, FaUndo } from 'react-icons/fa';
 import Auth from './Auth';
 import './index.css';
 
@@ -8,13 +8,19 @@ const API_URL = 'http://localhost:5000/api/todos';
 
 function App() {
   const [todos, setTodos] = useState([]);
-  const [inputText, setInputText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   
-  // Authentication State
+  // Tabs "tasks" or "deleted"
+  const [activeTab, setActiveTab] = useState('tasks');
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  
   const [token, setToken] = useState(localStorage.getItem('token'));
 
-  // If token changes, set the global axios authorization header automatically!
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -27,7 +33,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     setToken(null);
-    setTodos([]); // Clear UI
+    setTodos([]);
   };
 
   const fetchTodos = async () => {
@@ -36,9 +42,8 @@ function App() {
       const res = await axios.get(API_URL);
       setTodos(res.data);
     } catch (err) {
-      console.error('Error fetching todos:', err);
       if (err.response?.status === 401) {
-          handleLogout(); // Token expired or invalid
+          handleLogout();
       }
     } finally {
       setLoading(false);
@@ -47,12 +52,19 @@ function App() {
 
   const addTodo = async (e) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!newTaskTitle.trim()) return;
     
     try {
-      const res = await axios.post(API_URL, { text: inputText });
+      const res = await axios.post(API_URL, { 
+        title: newTaskTitle, 
+        description: newTaskDescription 
+      });
       setTodos([res.data, ...todos]);
-      setInputText('');
+      
+      // Reset form
+      setNewTaskTitle('');
+      setNewTaskDescription('');
+      setIsModalOpen(false);
     } catch (err) {
       console.error('Error adding todo:', err);
     }
@@ -67,7 +79,25 @@ function App() {
     }
   };
 
-  const deleteTodo = async (id) => {
+  const softDeleteTodo = async (id) => {
+    try {
+      const res = await axios.put(`${API_URL}/${id}`, { isDeleted: true });
+      setTodos(todos.map(t => t._id === id ? res.data : t));
+    } catch (err) {
+      console.error('Error soft deleting todo:', err);
+    }
+  };
+
+  const restoreTodo = async (id) => {
+    try {
+      const res = await axios.put(`${API_URL}/${id}`, { isDeleted: false });
+      setTodos(todos.map(t => t._id === id ? res.data : t));
+    } catch (err) {
+      console.error('Error restoring todo:', err);
+    }
+  };
+
+  const permanentlyDeleteTodo = async (id) => {
     try {
       await axios.delete(`${API_URL}/${id}`);
       setTodos(todos.filter(t => t._id !== id));
@@ -76,52 +106,136 @@ function App() {
     }
   };
 
-  // IF NOT LOGGED IN -> SHOW AUTH SCREEN
   if (!token) {
     return <Auth setToken={setToken} />;
   }
 
-  // IF LOGGED IN -> SHOW TODO APP
+  // Filter based on Tab selection AND search query
+  const displayedTodos = todos
+    .filter(t => activeTab === 'tasks' ? !t.isDeleted : t.isDeleted)
+    .filter(t => t.title?.toLowerCase().includes(searchQuery.toLowerCase()) || t.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
-    <div className="app-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ marginBottom: 0 }}>My Tasks.</h1>
-        <button onClick={handleLogout} className="delete-btn" style={{ padding: '10px 15px', background: 'rgba(255,255,255,0.1)', color: '#fff' }}>
-          <FaSignOutAlt style={{ marginRight: '8px' }} /> Logout
-        </button>
+    <div className="layout">
+      {/* Sidebar */}
+      <div className="sidebar">
+        <h1>Dashboard</h1>
+        <ul className="nav-menu">
+          <li className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}>
+            My Tasks
+          </li>
+          <li className={activeTab === 'deleted' ? 'active' : ''} onClick={() => setActiveTab('deleted')}>
+            Deleted
+          </li>
+        </ul>
+        <div style={{ marginTop: 'auto' }}>
+          <button className="logout-btn" onClick={handleLogout} style={{ width: '100%' }}>
+            Logout
+          </button>
+        </div>
       </div>
-      
-      <form onSubmit={addTodo} className="input-container">
+
+      {/* Main Content */}
+      <div className="main-content">
         <input 
           type="text" 
-          className="todo-input" 
-          placeholder="What needs to be done?" 
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
+          className="search-bar" 
+          placeholder="Search your task here..." 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <button type="submit" className="add-btn">Add Task</button>
-      </form>
+        
+        <div className="task-area">
+          {loading ? (
+            <div className="empty-wrapper">
+              <p className="empty-state">Loading tasks...</p>
+            </div>
+          ) : displayedTodos.length === 0 ? (
+            <div className="empty-wrapper">
+              <p className="empty-state">No tasks here</p>
+            </div>
+          ) : (
+            <ul className="todo-list">
+              {displayedTodos.map(todo => (
+                <li key={todo._id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
+                  <div className="todo-content" onClick={() => toggleComplete(todo._id, todo.completed)}>
+                    
+                    {/* Checkbox only shown in My Tasks */}
+                    {activeTab === 'tasks' && (
+                       <div className="checkbox">
+                         {todo.completed && <FaCheck size={12} />}
+                       </div>
+                    )}
+                    
+                    <div className="todo-text-group" style={{ marginLeft: activeTab === 'tasks' ? '12px' : '0' }}>
+                      <span className="todo-title">{todo.title || todo.text}</span>
+                      {todo.description && <span className="todo-description">{todo.description}</span>}
+                    </div>
+                  </div>
+                  
+                  <div className="action-buttons">
+                    {activeTab === 'tasks' ? (
+                      <button className="action-btn btn-delete" onClick={() => softDeleteTodo(todo._id)} title="Send to Deleted">
+                        <FaTrash size={14} />
+                      </button>
+                    ) : (
+                      <>
+                        <button className="action-btn btn-restore" onClick={() => restoreTodo(todo._id)} title="Restore Task">
+                           <FaUndo size={14} />
+                        </button>
+                        <button className="action-btn btn-delete" onClick={() => permanentlyDeleteTodo(todo._id)} title="Permanently Delete">
+                           <FaTrash size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
-      {loading ? (
-        <p style={{ color: '#94a3b8' }}>Loading your secure tasks...</p>
-      ) : todos.length === 0 ? (
-        <p style={{ color: '#94a3b8' }}>You're all caught up! ✨</p>
-      ) : (
-        <ul className="todo-list">
-          {todos.map(todo => (
-            <li key={todo._id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
-              <div className="todo-content" onClick={() => toggleComplete(todo._id, todo.completed)}>
-                <div className="checkbox">
-                  {todo.completed && <FaCheck size={12} />}
-                </div>
-                <span className="todo-text">{todo.text}</span>
+        {/* Floating Action Button (Only show on My Tasks tab) */}
+        {activeTab === 'tasks' && (
+          <button className="fab" onClick={() => setIsModalOpen(true)}>
+            +
+          </button>
+        )}
+      </div>
+
+      {/* New Task Modal Overlay */}
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>New Task</h2>
+            <form onSubmit={addTodo}>
+              <input 
+                type="text" 
+                className="modal-input" 
+                placeholder="Task title" 
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                autoFocus
+                required
+              />
+              <textarea 
+                className="modal-textarea" 
+                placeholder="Description"
+                value={newTaskDescription}
+                onChange={(e) => setNewTaskDescription(e.target.value)}
+              />
+              
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-save">
+                  Save
+                </button>
               </div>
-              <button className="delete-btn" onClick={() => deleteTodo(todo._id)}>
-                <FaTrash size={14} />
-              </button>
-            </li>
-          ))}
-        </ul>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -39,8 +39,10 @@ app.post('/api/todos', auth, (req, res) => {
         const newTodo = {
             _id: Date.now().toString(), // generate fake mongo-like ID
             user: req.user.id,
-            text: req.body.text,
+            title: req.body.title || 'Untitled',
+            description: req.body.description || '',
             completed: false,
+            isDeleted: false,
             createdAt: new Date().getTime()
         };
         
@@ -62,7 +64,9 @@ app.put('/api/todos/:id', auth, (req, res) => {
         
         // Update it
         if (req.body.completed !== undefined) store.todos[todoIndex].completed = req.body.completed;
-        if (req.body.text !== undefined) store.todos[todoIndex].text = req.body.text;
+        if (req.body.title !== undefined) store.todos[todoIndex].title = req.body.title;
+        if (req.body.description !== undefined) store.todos[todoIndex].description = req.body.description;
+        if (req.body.isDeleted !== undefined) store.todos[todoIndex].isDeleted = req.body.isDeleted;
         
         res.json(store.todos[todoIndex]);
     } catch (err) {
