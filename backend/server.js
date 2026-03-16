@@ -63,9 +63,11 @@ app.post('/api/todos', auth, async (req, res) => {
 // Update a todo 
 app.put('/api/todos/:id', auth, async (req, res) => {
     try {
+        console.log(`Update attempt for todo: ${req.params.id} by user: ${req.user.id}`);
         const todo = await Todo.findOne({ _id: req.params.id, user: req.user.id });
         
         if (!todo) {
+            console.log("Todo not found for update");
             return res.status(404).json({ message: 'Todo not found or not authorized' });
         }
         
@@ -75,8 +77,10 @@ app.put('/api/todos/:id', auth, async (req, res) => {
         if (req.body.isDeleted !== undefined) todo.isDeleted = req.body.isDeleted;
         
         const updatedTodo = await todo.save();
+        console.log("Todo updated successfully!");
         res.json(updatedTodo);
     } catch (err) {
+        console.error('Update Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -84,14 +88,18 @@ app.put('/api/todos/:id', auth, async (req, res) => {
 // Permanently Delete a todo
 app.delete('/api/todos/:id', auth, async (req, res) => {
     try {
+        console.log(`Delete attempt for todo: ${req.params.id} by user: ${req.user.id}`);
         const deletedTodo = await Todo.findOneAndDelete({ _id: req.params.id, user: req.user.id });
         
         if (!deletedTodo) {
+            console.log("Todo not found for deletion");
             return res.status(404).json({ message: 'Todo not found or not authorized' });
         }
         
+        console.log("Todo deleted successfully!");
         res.json({ message: 'Todo permanently removed' });
     } catch (err) {
+        console.error('Delete Error:', err);
         res.status(500).json({ message: err.message });
     }
 });
