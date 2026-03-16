@@ -31,26 +31,32 @@ app.use('/api/auth', require('./routes/auth'));
 // Get all todos FOR THE LOGGED IN USER
 app.get('/api/todos', auth, async (req, res) => {
     try {
+        console.log(`Fetching todos for user: ${req.user.id}`);
         const todos = await Todo.find({ user: req.user.id }).sort({ createdAt: -1 });
         res.json(todos);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('Error fetching todos:', err);
+        res.status(500).json({ message: 'Server error: ' + err.message });
     }
 });
 
 // Create a new todo FOR THE LOGGED IN USER
 app.post('/api/todos', auth, async (req, res) => {
     try {
+        const { title, description } = req.body;
+        console.log(`Creating todo for user: ${req.user.id}`, { title });
+
         const newTodo = new Todo({
             user: req.user.id,
-            title: req.body.title || 'Untitled',
-            description: req.body.description || ''
+            title,
+            description
         });
         
         const savedTodo = await newTodo.save();
         res.status(201).json(savedTodo);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        console.error('Error creating todo:', err);
+        res.status(400).json({ message: 'Bad request: ' + err.message });
     }
 });
 
