@@ -5,6 +5,7 @@ import Auth from './Auth';
 import './index.css';
 
 const API_URL = `http://${window.location.hostname}:5000/api/todos`;
+console.log("Current API URL:", API_URL);
 
 function App() {
   const [todos, setTodos] = useState([]);

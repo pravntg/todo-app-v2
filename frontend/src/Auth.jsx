@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 
 const AUTH_API_URL = `http://${window.location.hostname}:5000/api/auth`;
+console.log("Current Auth API URL:", AUTH_API_URL);
 
 function Auth({ setToken }) {
   const [isLogin, setIsLogin] = useState(true);
