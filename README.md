@@ -1,46 +1,39 @@
-# 📝 Fullstack Todo Application (Dockerized)
+# Fullstack Todo Application
 
-A modern, professional Todo management system built with **React**, **Node.js**, and **MongoDB**. This project is fully containerized using **Docker** and **Nginx** for industry-standard deployment.
+This project is a complete Todo management system that handles everything from user accounts to persistent task storage. I've designed it to be reliable and easy to deploy using modern containerization tools.
 
-## 🚀 Quick Start (with Docker)
+## Project Overview
 
-The easiest way to run the app is using Docker Compose.
+The application is built to handle multiple users, each with their own private list of tasks. I've implemented a full system for managing these tasks, including the ability to add new ones, mark them as finished, and a safety feature that allows you to "delete" tasks to a bin before removing them for good.
 
-1. **Clone the project:**
-   ```bash
-   git clone <your-repo-url>
-   cd todo-app-v2
-   ```
+### What has been done
 
-2. **Run it:**
-   ```bash
-   docker-compose up --build -d
-   ```
-   *Your app will be live at `http://localhost` (or your Server IP).*
+I've completed the following work on this project:
 
----
+- Database Integration: Connected the entire application to MongoDB Atlas for permanent storage. This ensures that your tasks and user accounts are saved even if the server restarts.
+- Authentication System: Built a secure login and signup system using JSON Web Tokens (JWT). This keeps user data private and ensures only you can see your own tasks.
+- Advanced Task Logic: Implemented a soft-delete mechanism. When you delete a task, it goes to a "Deleted" tab where you can either restore it or delete it permanently.
+- Dockerization: Set up Docker and Docker Compose for the entire stack. The backend and frontend run in their own isolated containers, making the app much more portable and stable.
+- Production Server Setup: Configured the application to run on a Google Cloud Platform (GCP) instance, including opening the necessary firewall ports and setting up Nginx to serve the frontend.
+- Dynamic Environment Detection: Updated the frontend to automatically find the correct backend address whether it's running on a local machine or a cloud server.
 
-## ✨ Features
-- **Modern UI**: Sleek dashboard built with React and custom CSS.
-- **Full Persistence**: All tasks and users are stored in MongoDB Atlas.
-- **Secure Auth**: JWT-based authentication for private task management.
-- **Soft Delete**: Integrated "Deleted" bin to restore tasks or remove them permanently.
-- **Dockerized**: Backend (Node), Frontend (Nginx), and Database environment are fully isolated.
+### Technologies used
 
----
+I used a modern stack to build this application:
 
-## 🛠️ Tech Stack
-- **Frontend**: React (Vite), Axios, React Icons, Nginx.
-- **Backend**: Node.js, Express.js, JWT, Bcrypt.
-- **Database**: MongoDB Atlas (Mongoose).
-- **DevOps**: Docker, Docker Compose, GCP (Google Cloud).
+- Frontend: Built with React and the Vite build tool. I used Axios for making API calls and React Icons for the interface elements.
+- Backend: Developed using Node.js and the Express framework.
+- Security: Used Bcrypt for hashing passwords and JSON Web Tokens for handling secure sessions.
+- Database: MongoDB Atlas was chosen for its reliability, and I used Mongoose to interact with it from the code.
+- DevOps and Hosting: Docker and Docker Compose were used for containerization. The application is hosted on Google Cloud Platform (GCP), with Nginx serving as the web server for the frontend.
 
----
+## How to run the project
 
-## 🌍 Deployment
-The app is currently deployed on **Google Cloud Platform (GCP)**. 
-Live Link: [http://34.26.100.105](http://34.26.100.105)
+To get this project running on your own machine, you only need to have Docker installed.
 
----
+1. Clone the repository and navigate into the folder.
+2. Run the command: `docker-compose up --build -d`
 
-Developed by **Praveen** 🚀
+The application will be available at http://localhost.
+
+For the live version running on my server, you can visit: http://34.26.100.105
