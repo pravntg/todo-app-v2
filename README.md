@@ -35,3 +35,5 @@ To get this project running on your own machine, you only need to have Docker in
 2. Run the command: `docker-compose up --build -d`
 
 The application will be available at http://localhost.
+
+For the live version running on my server, you can visit: http://34.26.100.105
