@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dns = require('dns');
+const { createClient } = require('redis');
 require('dotenv').config();
 
 // Force Node to use Google DNS to bypass ISP blocking of MongoDB SRV records
@@ -23,6 +24,16 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('✓ MongoDB Connected Successfully!'))
     .catch(err => console.error('MongoDB Connection Error:', err));
 
+// Connect to Redis
+const redisClient = createClient({
+    url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+redisClient.on('error', (err) => console.log('Redis Client Error', err));
+redisClient.connect()
+    .then(() => console.log('✓ Redis Connected Successfully!'))
+    .catch(err => console.error('Redis Connection Error:', err));
+
 // Authentication Routes
 app.use('/api/auth', require('./routes/auth'));
 
@@ -32,7 +43,22 @@ app.use('/api/auth', require('./routes/auth'));
 app.get('/api/todos', auth, async (req, res) => {
     try {
         console.log(`Fetching todos for user: ${req.user.id}`);
+        
+        // 1. Check Redis Cache First
+        const cacheKey = `todos:${req.user.id}`;
+        const cachedTodos = await redisClient.get(cacheKey);
+
+        if (cachedTodos) {
+            console.log('Cache Hit: Returning todos from Redis');
+            return res.json(JSON.parse(cachedTodos));
+        }
+
+        console.log('Cache Miss: Fetching from MongoDB');
         const todos = await Task.find({ user: req.user.id }).sort({ createdAt: -1 });
+        
+        // 2. Save result to Redis (expires in 1 hour)
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(todos));
+        
         res.json(todos);
     } catch (err) {
         console.error('Error fetching todos:', err);
@@ -53,6 +79,10 @@ app.post('/api/todos', auth, async (req, res) => {
         });
         
         const savedTask = await newTask.save();
+
+        // Clear user's cache so the app fetches the new task next time
+        await redisClient.del(`todos:${req.user.id}`);
+
         res.status(201).json(savedTask);
     } catch (err) {
         console.error('Error creating task:', err);
@@ -77,6 +107,10 @@ app.put('/api/todos/:id', auth, async (req, res) => {
         if (req.body.isDeleted !== undefined) todo.isDeleted = req.body.isDeleted;
         
         const updatedTodo = await todo.save();
+
+        // Clear user's cache so the app fetches the updated task next time
+        await redisClient.del(`todos:${req.user.id}`);
+
         console.log("Todo updated successfully!");
         res.json(updatedTodo);
     } catch (err) {
@@ -96,6 +130,9 @@ app.delete('/api/todos/:id', auth, async (req, res) => {
             return res.status(404).json({ message: 'Todo not found or not authorized' });
         }
         
+        // Clear user's cache so the app drops the deleted task next time
+        await redisClient.del(`todos:${req.user.id}`);
+
         console.log("Todo deleted successfully!");
         res.json({ message: 'Todo permanently removed' });
     } catch (err) {

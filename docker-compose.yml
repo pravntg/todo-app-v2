@@ -5,6 +5,16 @@ services:
       - "5000:5000"
     env_file:
       - ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    restart: always
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
     restart: always
 
   frontend:
