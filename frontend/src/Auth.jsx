@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 
-const AUTH_API_URL = `http://${window.location.hostname}:5000/api/auth`;
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || `http://${window.location.hostname}:5000/api/auth`;
 console.log("Current Auth API URL:", AUTH_API_URL);
 
 function Auth({ setToken }) {

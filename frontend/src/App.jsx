@@ -4,7 +4,7 @@ import { FaTrash, FaCheck, FaUndo } from 'react-icons/fa';
 import Auth from './Auth';
 import './index.css';
 
-const API_URL = `http://${window.location.hostname}:5000/api/todos`;
+const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000/api/todos`;
 console.log("Current API URL:", API_URL);
 
 function App() {
