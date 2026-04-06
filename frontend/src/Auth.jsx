@@ -31,7 +31,10 @@ function Auth({ setToken }) {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
+      <div className="auth-card" style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', top: '-12px', right: '-12px', background: '#3b82f6', color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          Version 2 ✨
+        </div>
         <h2>{isLogin ? 'Welcome Back!' : 'Create Account!'}</h2>
         <p className="subtitle">
           {isLogin ? "Let's continue managing your tasks" : 'Join us to manage your tasks'}
