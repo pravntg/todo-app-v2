@@ -39,24 +39,33 @@ app.use('/api/auth', require('./routes/auth'));
 
 // --- PROTECTED TODO ROUTES ---
 
-// Get all todos FOR THE LOGGED IN USER
-app.get('/api/todos', auth, async (req, res) => {
+// Redis Caching Middleware
+const cacheTodos = async (req, res, next) => {
     try {
-        console.log(`Fetching todos for user: ${req.user.id}`);
-        
-        // 1. Check Redis Cache First
         const cacheKey = `todos:${req.user.id}`;
         const cachedTodos = await redisClient.get(cacheKey);
 
         if (cachedTodos) {
-            console.log('Cache Hit: Returning todos from Redis');
+            console.log('Cache Hit: Returning todos directly from Redis Middleware');
             return res.json(JSON.parse(cachedTodos));
         }
+        
+        // If not in cache, proceed to the actual MongoDB route
+        next();
+    } catch (err) {
+        console.error('Redis Cache Middleware Error:', err);
+        next(); // Safely fallback to MongoDB query if Redis crashes
+    }
+};
 
-        console.log('Cache Miss: Fetching from MongoDB');
+// Get all todos FOR THE LOGGED IN USER
+app.get('/api/todos', auth, cacheTodos, async (req, res) => {
+    try {
+        console.log(`Cache Miss: Fetching from MongoDB for user ${req.user.id}`);
         const todos = await Task.find({ user: req.user.id }).sort({ createdAt: -1 });
         
-        // 2. Save result to Redis (expires in 1 hour)
+        // Save result to Redis (expires in 1 hour)
+        const cacheKey = `todos:${req.user.id}`;
         await redisClient.setEx(cacheKey, 3600, JSON.stringify(todos));
         
         res.json(todos);
